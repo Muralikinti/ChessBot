@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*pip-log.txt
+*pip-delete-this-directory.txt
+
+# Virtual environment
+venv/
+env/
+.venv/
+.env/
+
+# IDE / Editor specific
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS-specific
+.DS_Store
+Thumbs.db 
