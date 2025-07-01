@@ -2,7 +2,7 @@
 
 A complete chess application featuring both traditional AI and modern neural network-powered gameplay. Built from scratch in Python with multiple AI opponents ranging from classic minimax to cutting-edge Monte Carlo Tree Search guided by deep neural networks.
 
-## 🎮 Features
+## Features
 
 - **Complete Chess Implementation**: Full rule support including castling, en passant, pawn promotion, and draw conditions
 - **Multiple AI Opponents**:
@@ -13,7 +13,7 @@ A complete chess application featuring both traditional AI and modern neural net
 - **Interactive GUI**: Clean pygame interface with move highlighting and real-time analysis
 - **Performance Comparison**: Switch between AI modes to compare playing strength
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 ```bash
@@ -32,7 +32,7 @@ python play_advanced.py
 python train.py
 ```
 
-## 🏗️ Architecture
+## Architecture
 
 ### Core Components
 - **`ChessEngine.py`**: Game rules, move generation, and traditional minimax AI
@@ -44,7 +44,7 @@ python train.py
 - **`play_classic.py`**: Original game with minimax AI
 - **`play_advanced.py`**: Enhanced interface with AI mode selection
 
-## 🧠 Technical Implementation
+## Technical Implementation
 
 ### Neural Network Architecture
 - **Input**: 8×8×12 board representation (piece types × colors)
@@ -64,7 +64,7 @@ python train.py
 - Iteratively improve through reinforcement learning
 
 
-## 🎯 Usage Examples
+## Usage Examples
 
 ### Playing Against Different AIs
 Launch `play_advanced.py` and use the AI mode selector to switch between:
@@ -90,7 +90,7 @@ ai_player = MCTSPlayer(simulations=400)
 best_move = ai_player.get_move(game)
 ```
 
-## 🛠️ Development
+## Development
 
 ### Project Structure
 ```
