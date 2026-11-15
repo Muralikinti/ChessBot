@@ -38,6 +38,12 @@ class GameState():
         self.checkmate = False
         self.stalemate = False
         self.winner = None  
+        self.draw = False
+        self.draw_reason = None
+
+        # Draw tracking: halfmove clock (fifty-move rule) and hash history (repetition)
+        self.halfmove_clock = 0
+        self.position_history = [self.get_position_hash()]
         
         # AI settings
         self.ai_depth = 3  
@@ -249,8 +255,10 @@ class GameState():
                     self.board[end_row][0] = "--"
 
             # Handle en passant
+            en_passant_capture = False
             if piece[1] == 'P' and (end_row, end_col) == self.en_passant_possible:
                 self.board[start_row][end_col] = "--"  
+                en_passant_capture = True
 
             # Handle pawn promotion
             if piece[1] == 'P' and (end_row == 0 or end_row == 7):
@@ -283,9 +291,16 @@ class GameState():
             else:
                 self.en_passant_possible = None
 
+            # Fifty-move rule counter: reset on pawn move or capture (incl. en passant)
+            if piece[1] == 'P' or captured_piece != "--" or en_passant_capture:
+                self.halfmove_clock = 0
+            else:
+                self.halfmove_clock += 1
+
             self.move_log.append((start_row, start_col, end_row, end_col))
             self.white_to_move = not self.white_to_move
             self.in_check = self.is_in_check()
+            self.position_history.append(self.get_position_hash())
             self.check_game_end()  
             return True
         return False
@@ -458,15 +473,50 @@ class GameState():
             self.stalemate = True
             self.winner = None  
         else:
-            self.game_over = False
+            draw_reason = self.get_draw_reason()
+            if draw_reason:
+                self.game_over = True
+                self.draw = True
+                self.draw_reason = draw_reason
+                self.winner = None
+            else:
+                self.game_over = False
+                self.draw = False
+                self.draw_reason = None
             self.checkmate = False
             self.stalemate = False
+
+    def get_draw_reason(self):
+        """Return why the game is drawn (other than stalemate), or None"""
+        if self.halfmove_clock >= 100:
+            return "fifty-move rule"
+        if self.position_history.count(self.position_history[-1]) >= 3:
+            return "threefold repetition"
+        if self.has_insufficient_material():
+            return "insufficient material"
+        return None
+
+    def has_insufficient_material(self):
+        """K vs K, K+minor vs K, or K+B vs K+B with same-colored bishops"""
+        minors = []
+        for row in range(8):
+            for col in range(8):
+                piece = self.board[row][col]
+                if piece == "--" or piece[1] == 'K':
+                    continue
+                if piece[1] in ('N', 'B'):
+                    minors.append((piece[1], (row + col) % 2))
+                else:
+                    return False  # pawn, rook or queen on board
+        if len(minors) <= 1:
+            return True
+        return all(m[0] == 'B' for m in minors) and len({m[1] for m in minors}) == 1
 
     def evaluate_position(self):
         """Evaluate the current board position"""
         if self.checkmate:
             return -20000 if self.white_to_move else 20000
-        if self.stalemate:
+        if self.stalemate or self.draw:
             return 0
             
         score = 0
@@ -629,6 +679,16 @@ class GameState():
         """Minimax algorithm with alpha-beta pruning and transposition table"""
         # Check transposition table
         position_hash = self.get_position_hash()
+
+        # Draws depend on game history, so handle them before (and never store them in)
+        # the transposition table, which is keyed on the board position only.
+        if self.game_over:
+            return self.evaluate_position(), None
+        # A non-root position already seen in the game/search path counts as a draw,
+        # so the AI avoids repeating when ahead and may seek repetition when behind.
+        if depth < self.ai_depth and self.position_history.count(position_hash) >= 2:
+            return 0, None
+
         if position_hash in self.transposition_table:
             cached_depth, cached_score, cached_move = self.transposition_table[position_hash]
             
@@ -806,6 +866,10 @@ class GameState():
         if opening_move:
             return opening_move
         
+        # Cached scores ignore game history (repetition/fifty-move), so start each
+        # search fresh; otherwise a repeated position replays the same cached move.
+        self.transposition_table.clear()
+
         # Fall back to minimax if no opening move available
         _, best_move = self.minimax(self.ai_depth, float('-inf'), float('inf'), self.white_to_move)
         return best_move
@@ -858,7 +922,12 @@ class GameState():
             'game_over': self.game_over,
             'checkmate': self.checkmate,
             'stalemate': self.stalemate,
-            'winner': self.winner
+            'winner': self.winner,
+            'draw': self.draw,
+            'draw_reason': self.draw_reason,
+            'halfmove_clock': self.halfmove_clock,
+            'history_len': len(self.position_history),
+            'move_log_len': len(self.move_log)
         }
 
     def restore_state(self, state):
@@ -881,6 +950,11 @@ class GameState():
         self.checkmate = state['checkmate']
         self.stalemate = state['stalemate']
         self.winner = state['winner']
+        self.draw = state['draw']
+        self.draw_reason = state['draw_reason']
+        self.halfmove_clock = state['halfmove_clock']
+        del self.position_history[state['history_len']:]
+        del self.move_log[state['move_log_len']:]
 
     def initialize_opening_book(self):
         """Initialize opening book with popular chess openings"""
