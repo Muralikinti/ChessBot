@@ -24,10 +24,14 @@ class AISettings:
     MCTS_RANDOM = "mcts_random"
     MCTS_TRAINED = "mcts_trained"
     
+    # Where train.py saves the final trained model
+    TRAINED_MODEL_PATH = os.path.join("models", "chess_model_final.pth")
+
     def __init__(self):
         self.ai_mode = self.TRADITIONAL_AI
         self.mcts_simulations = 100
         self.model_path = None
+        self.status = ""  # Short message shown next to the AI mode selector
         self.thinking_time = 3.0  # seconds
 
 
@@ -40,14 +44,22 @@ class EnhancedChessGame:
         self.load_mcts_player()
     
     def load_mcts_player(self):
-        """Load MCTS player with neural network"""
+        """Load MCTS player: trained weights for MCTS (Trained), random weights otherwise"""
+        settings = self.ai_settings
+        settings.model_path = (settings.TRAINED_MODEL_PATH
+                               if settings.ai_mode == settings.MCTS_TRAINED else None)
+        settings.status = ""
         try:
             self.mcts_player = MCTSPlayer(
-                neural_network_path=self.ai_settings.model_path,
-                simulations=self.ai_settings.mcts_simulations
+                neural_network_path=settings.model_path,
+                simulations=settings.mcts_simulations
             )
+            if settings.ai_mode == settings.MCTS_TRAINED and not self.mcts_player.neural_network.model_loaded:
+                settings.status = "No trained model found - run train.py (using random weights)"
         except Exception as e:
+            print(f"Could not create MCTS player: {e}")
             self.mcts_player = None
+            settings.status = "MCTS unavailable - using minimax"
     
     def get_ai_move(self, game_state):
         """Get AI move based on current AI mode"""
@@ -93,6 +105,10 @@ def draw_ai_mode_selector(win, mouse_pos, ai_settings):
     font = pygame.font.SysFont('Arial', 16)
     label = font.render('AI Mode:', True, TEXT_COLOR)
     win.blit(label, (10, y_start))
+    if ai_settings.status:
+        status_font = pygame.font.SysFont('Arial', 12)
+        status_text = status_font.render(ai_settings.status, True, (255, 180, 0))
+        win.blit(status_text, (80, y_start + 3))
     
     # Mode buttons
     button_width = 120

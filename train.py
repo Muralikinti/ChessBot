@@ -11,7 +11,7 @@ from typing import List, Tuple, Dict
 import matplotlib.pyplot as plt
 
 from ChessEngine import GameState
-from chess_neural_network import ChessNeuralNetworkWrapper, BoardEncoder, ChessNet
+from chess_neural_network import ChessNeuralNetworkWrapper, BoardEncoder, ChessNet, get_default_device
 from mcts import MCTSPlayer, MonteCarloTreeSearch
 
 
@@ -34,7 +34,7 @@ class SelfPlayTrainer:
                  buffer_size: int = 100000):
         
         # Initialize neural network
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = get_default_device()
         print(f"Using device: {self.device}")
         
         self.neural_network = ChessNeuralNetworkWrapper(model_path, self.device)
