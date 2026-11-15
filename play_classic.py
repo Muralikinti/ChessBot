@@ -128,6 +128,8 @@ def draw_game_end_overlay(win, game_state):
             message = f"Checkmate! {game_state.winner.title()} Wins!"
         elif game_state.stalemate:
             message = "Stalemate! It's a Draw!"
+        elif game_state.draw:
+            message = f"Draw by {game_state.draw_reason}!"
         else:
             message = "Game Over!"
         
