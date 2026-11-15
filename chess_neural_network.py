@@ -3,7 +3,18 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 from typing import Tuple, List
+import os
 import random
+
+
+def get_default_device():
+    """Best available device: CUDA, then Apple Silicon (MPS), then CPU"""
+    if torch.cuda.is_available():
+        return torch.device('cuda')
+    if getattr(torch.backends, 'mps', None) and torch.backends.mps.is_available():
+        return torch.device('mps')
+    return torch.device('cpu')
+
 
 class ChessNet(nn.Module):
     """
@@ -172,15 +183,21 @@ class ChessNeuralNetworkWrapper:
     """Wrapper class for easy integration with existing chess engine"""
     
     def __init__(self, model_path=None, device=None):
-        self.device = device or torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = device or get_default_device()
         self.model = ChessNet().to(self.device)
+        self.model_loaded = False
         
-        if model_path and torch.cuda.is_available():
-            try:
-                self.model.load_state_dict(torch.load(model_path))
-                print(f"Loaded model from {model_path}")
-            except:
-                print(f"Could not load model from {model_path}, using random weights")
+        if model_path:
+            if not os.path.exists(model_path):
+                print(f"Model file {model_path} not found, using random weights")
+            else:
+                try:
+                    state_dict = torch.load(model_path, map_location=self.device)
+                    self.model.load_state_dict(state_dict)
+                    self.model_loaded = True
+                    print(f"Loaded model from {model_path}")
+                except Exception as e:
+                    print(f"Could not load model from {model_path} ({e}), using random weights")
         
         self.model.eval()
     
